@@ -53,35 +53,41 @@
 
             let postsList = [];
 
+            // 우선 기본 목록으로 시작
+            postsList = [
+                { filename: '고양시-철거업체-선택-가이드-안전하고-신뢰할-수-있는-업체-찾기.md' },
+                { filename: '테스트 블로그 글.md' },
+                { filename: 'suwon-office-demolition.md' }
+            ];
+
             try {
-                // GitHub API로 posts 폴더의 파일 목록 가져오기
+                // GitHub API로 posts 폴더의 파일 목록 가져오기 시도
                 console.log('📡 GitHub API로 실시간 파일 목록 가져오는 중...');
                 const apiUrl = 'https://api.github.com/repos/leeyoungseok78/daebak-demolition/contents/posts';
-                const response = await fetch(apiUrl);
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
                 
                 if (response.ok) {
                     const files = await response.json();
                     // .md 파일만 필터링
-                    postsList = files
+                    const apiPostsList = files
                         .filter(file => file.name.endsWith('.md'))
-                        .map(file => ({ 
-                            filename: file.name,
-                            lastModified: file.download_url // GitHub에서 제공하는 다운로드 URL 사용
-                        }));
+                        .map(file => ({ filename: file.name }));
                     
-                    console.log(`✅ GitHub API로 ${postsList.length}개 파일 발견:`, postsList.map(p => p.filename));
+                    if (apiPostsList.length > 0) {
+                        postsList = apiPostsList;
+                        console.log(`✅ GitHub API로 ${postsList.length}개 파일 발견:`, postsList.map(p => p.filename));
+                    } else {
+                        console.log('⚠️ GitHub API에서 파일을 찾지 못함, 기본 목록 사용');
+                    }
                 } else {
-                    console.log('⚠️ GitHub API 응답 실패, 기본 목록 사용');
-                    throw new Error('GitHub API failed');
+                    console.log(`⚠️ GitHub API 응답 실패 (${response.status}), 기본 목록 사용`);
                 }
             } catch (error) {
-                console.log('🔄 GitHub API 실패, 기본 목록으로 대체:', error.message);
-                // API 실패 시 기본 목록 사용
-                postsList = [
-                    { filename: '고양시-철거업체-선택-가이드-안전하고-신뢰할-수-있는-업체-찾기.md' },
-                    { filename: '테스트 블로그 글.md' },
-                    { filename: 'suwon-office-demolition.md' }
-                ];
+                console.log('🔄 GitHub API 오류, 기본 목록 사용:', error.message);
             }
 
             try {
