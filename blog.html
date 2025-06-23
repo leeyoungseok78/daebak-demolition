@@ -51,21 +51,27 @@
             const container = document.getElementById('blog-posts-container');
             const posts = [];
 
+            // 기본 posts 목록 (최신순)
+            let postsList = [
+                { filename: '고양시-철거업체-선택-가이드-안전하고-신뢰할-수-있는-업체-찾기.md' },
+                { filename: '테스트 블로그 글.md' },
+                { filename: 'suwon-office-demolition.md' }
+            ];
+
             try {
-                // 먼저 posts 목록 JSON 파일을 로드
+                // JSON 파일에서 업데이트된 목록 시도
                 const postsListResponse = await fetch('/posts-list.json');
-                let postsList = [];
-                
                 if (postsListResponse.ok) {
-                    postsList = await postsListResponse.json();
-                } else {
-                    // JSON 파일이 없으면 기본 목록 사용
-                    postsList = [
-                        { filename: 'suwon-office-demolition.md' },
-                        { filename: '테스트 블로그 글.md' },
-                        { filename: '고양시-철거업체-선택-가이드-안전하고-신뢰할-수-있는-업체-찾기.md' }
-                    ];
+                    const jsonList = await postsListResponse.json();
+                    if (jsonList && jsonList.length > 0) {
+                        postsList = jsonList;
+                    }
                 }
+            } catch (error) {
+                console.log('Using default posts list');
+            }
+
+            try {
 
                                 // 각 포스트 파일을 로드하고 메타데이터 추출
                 for (const postInfo of postsList) {
