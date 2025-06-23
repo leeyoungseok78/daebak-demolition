@@ -50,49 +50,64 @@
         async function loadBlogPosts() {
             const container = document.getElementById('blog-posts-container');
             const posts = [];
-
             let postsList = [];
 
-            // 우선 기본 목록으로 시작
-            postsList = [
-                { filename: '고양시-철거업체-선택-가이드-안전하고-신뢰할-수-있는-업체-찾기.md' },
-                { filename: '테스트 블로그 글.md' },
-                { filename: 'suwon-office-demolition.md' }
-            ];
-
             try {
-                // GitHub API로 posts 폴더의 파일 목록 가져오기 시도
-                console.log('📡 GitHub API로 실시간 파일 목록 가져오는 중...');
-                const apiUrl = 'https://api.github.com/repos/leeyoungseok78/daebak-demolition/contents/posts';
-                const response = await fetch(apiUrl, {
-                    headers: {
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-                
+                // 1순위: posts-list.json 파일 사용
+                console.log('📄 posts-list.json에서 파일 목록 가져오는 중...');
+                const response = await fetch('/posts-list.json');
                 if (response.ok) {
-                    const files = await response.json();
-                    // .md 파일만 필터링
-                    const apiPostsList = files
-                        .filter(file => file.name.endsWith('.md'))
-                        .map(file => ({ filename: file.name }));
-                    
-                    if (apiPostsList.length > 0) {
-                        postsList = apiPostsList;
-                        console.log(`✅ GitHub API로 ${postsList.length}개 파일 발견:`, postsList.map(p => p.filename));
-                    } else {
-                        console.log('⚠️ GitHub API에서 파일을 찾지 못함, 기본 목록 사용');
-                    }
+                    postsList = await response.json();
+                    console.log(`✅ posts-list.json에서 ${postsList.length}개 파일 발견:`, postsList.map(p => p.filename));
                 } else {
-                    console.log(`⚠️ GitHub API 응답 실패 (${response.status}), 기본 목록 사용`);
+                    console.log('⚠️ posts-list.json 로드 실패, GitHub API 시도');
+                    throw new Error('posts-list.json not found');
                 }
             } catch (error) {
-                console.log('🔄 GitHub API 오류, 기본 목록 사용:', error.message);
+                console.log('🔄 posts-list.json 오류, GitHub API 시도:', error.message);
+                
+                try {
+                    // 2순위: GitHub API로 실시간 파일 목록 가져오기
+                    console.log('📡 GitHub API로 실시간 파일 목록 가져오는 중...');
+                    const apiUrl = 'https://api.github.com/repos/leeyoungseok78/daebak-demolition/contents/posts';
+                    const response = await fetch(apiUrl, {
+                        headers: {
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const files = await response.json();
+                        // .md 파일만 필터링
+                        const apiPostsList = files
+                            .filter(file => file.name.endsWith('.md'))
+                            .map(file => ({ filename: file.name }));
+                        
+                        if (apiPostsList.length > 0) {
+                            postsList = apiPostsList;
+                            console.log(`✅ GitHub API로 ${postsList.length}개 파일 발견:`, postsList.map(p => p.filename));
+                        } else {
+                            console.log('⚠️ GitHub API에서 파일을 찾지 못함, 기본 목록 사용');
+                            throw new Error('No files found in GitHub API');
+                        }
+                    } else {
+                        console.log(`⚠️ GitHub API 응답 실패 (${response.status}), 기본 목록 사용`);
+                        throw new Error('GitHub API failed');
+                    }
+                } catch (apiError) {
+                    // 3순위: 기본 목록 사용
+                    console.log('🔄 GitHub API 오류, 기본 목록 사용:', apiError.message);
+                    postsList = [
+                        { filename: '일산-철거-업체-제대로-된곳에서.md' },
+                        { filename: '고양시-철거업체-선택-가이드-안전하고-신뢰할-수-있는-업체-찾기.md' },
+                        { filename: '테스트 블로그 글.md' },
+                        { filename: 'suwon-office-demolition.md' }
+                    ];
+                }
             }
 
             try {
-
-                                // 각 포스트 파일을 로드하고 메타데이터 추출
+                // 각 포스트 파일을 로드하고 메타데이터 추출
                 for (const postInfo of postsList) {
                     const filename = postInfo.filename;
                     try {
@@ -104,18 +119,19 @@
                             posts.push({
                                 filename: filename.replace('.md', ''),
                                 title: parsed.data.title || '제목 없음',
-                                date: parsed.data.date || new Date(),
+                                date: parsed.data.date || postInfo.modified || new Date(),
                                 content: parsed.content,
                                 summary: generateSummary(parsed.content)
                             });
+                        } else {
+                            console.log(`⚠️ ${filename} 파일 로드 실패`);
                         }
                     } catch (error) {
-                        console.error(`Error loading ${filename}:`, error);
+                        console.error(`❌ ${filename} 로드 중 오류:`, error);
                     }
                 }
             } catch (error) {
-                console.error('Error loading posts list:', error);
-                // 오류 발생 시 빈 배열로 처리
+                console.error('❌ 포스트 로드 중 오류:', error);
             }
 
             // 날짜순으로 정렬 (최신순)
@@ -145,6 +161,7 @@
             }).join('');
 
             container.innerHTML = postsHtml;
+            console.log(`✅ ${posts.length}개의 블로그 포스트가 성공적으로 로드되었습니다.`);
         }
 
         function generateSummary(content) {

@@ -1,12 +1,25 @@
 [build]
-  command = "node generate-posts-list.js"
+  command = "echo '🚀 블로그 포스트 목록 생성 시작...' && node generate-posts-list.js && echo '✅ 빌드 완료!'"
   publish = "."
 
 [build.environment]
   NODE_VERSION = "18"
 
+# 정적 파일 서빙을 위한 헤더 설정
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block" 
+    X-XSS-Protection = "1; mode=block"
+
+# JSON 파일에 대한 적절한 MIME 타입 설정
+[[headers]]
+  for = "*.json"
+  [headers.values]
+    Content-Type = "application/json; charset=utf-8"
+
+# 마크다운 파일에 대한 MIME 타입 설정
+[[headers]]
+  for = "*.md"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8" 
