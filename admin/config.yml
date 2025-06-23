@@ -1,6 +1,7 @@
 backend:
-  name: git-gateway
-  branch: main # 나중에 깃허브에 연결할 브랜치 이름입니다.
+  name: github
+  repo: leeyoungseok78/daebak-demolition # 깃허브 저장소 경로
+  branch: main # 브랜치 이름
 
 # 이 부분은 나중에 사이트를 깃허브에 올리고 Netlify에 연결할 때 활성화합니다.
 # local_backend: true
